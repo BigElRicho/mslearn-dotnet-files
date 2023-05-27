@@ -1,8 +1,14 @@
 ﻿// See https://aka.ms/new-console-template for more information
-using System.IO;
-using System.Collections.Generic;
+using Newtonsoft.Json;
 
-var salesFiles = FindFiles("stores");
+var currentDirectory = Directory.GetCurrentDirectory();
+var storesDirectory = Path.Combine(currentDirectory,"stores");
+var salesTotalDir = Path.Combine(currentDirectory, "salesTotalDir");
+Directory.CreateDirectory(salesTotalDir);
+var salesFiles = FindFiles(storesDirectory);
+var salesTotal = CalculateSalesTotal(salesFiles);
+
+File.AppendAllText(Path.Combine(salesTotalDir,"totals.txt"), $"{salesTotal}{Environment.NewLine}");
 
 foreach(var file in salesFiles)
 {
@@ -11,17 +17,32 @@ foreach(var file in salesFiles)
 
 IEnumerable<string> FindFiles(string folderName)
 {
-    List<string> salesFiles =  new List<string>();
+    List<string> salesFiles = new List<string>();
     var foundFiles = Directory.EnumerateFiles(folderName, "*", SearchOption.AllDirectories);
     foreach(var file in foundFiles)
     {
-        // The file name will contain the full path, so only check the end of it
-        if(file.EndsWith("sales.json"))
+        var extension = Path.GetExtension(file);
+        if(extension == ".json")
         {
-            salesFiles.Add(file);
+            salesFiles.Add(file);   
         }
     }
     return salesFiles;
 }
+double CalculateSalesTotal(IEnumerable<string> salesFiles)
+{
+    double salesTotals = 0;
+    
+    foreach(string file in salesFiles)
+    {
+        string salesJson = File.ReadAllText(file);    
+        SalesData? data = JsonConvert.DeserializeObject<SalesData?>(salesJson);
+        salesTotals += data?.Total ?? 0;
+    }
+
+    return salesTotals;
+}
+
+record SalesData (double Total);
 
 
